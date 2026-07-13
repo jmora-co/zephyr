@@ -15,7 +15,7 @@ You need Node.js with `npx` available. There is no need to clone the repository 
 ### Recommended: choose the agent and scope
 
 ```bash
-npx skills add jmora-co/zephyr
+npx skills add jmora-co/zephyr --skill zephyr-test-case-creator
 ```
 
 The installer detects compatible agents and lets you choose where to install the Skill.
@@ -23,7 +23,7 @@ The installer detects compatible agents and lets you choose where to install the
 ### Global installation for all compatible agents
 
 ```bash
-npx skills add jmora-co/zephyr -g -a '*' -y
+npx skills add jmora-co/zephyr --skill zephyr-test-case-creator -g -a '*' -y
 ```
 
 The global installation makes the Skill available across all your projects. To install it only in the current project, use the recommended command and select project scope.
@@ -101,16 +101,18 @@ To import the CSV, select Excel CSV, UTF-8, comma delimiter, row 1 as the starti
 
 ```text
 .
-├── SKILL.md
-├── agents/
-│   └── openai.yaml
-├── assets/
-│   └── zephyr-cases-template.md
-├── references/
-│   ├── guided-discovery.md
-│   └── zephyr-format.md
-└── scripts/
-    └── export_zephyr_csv.py
+├── README.md
+└── zephyr-test-case-creator/
+    ├── SKILL.md
+    ├── agents/
+    │   └── openai.yaml
+    ├── assets/
+    │   └── zephyr-cases-template.md
+    ├── references/
+    │   ├── guided-discovery.md
+    │   └── zephyr-format.md
+    └── scripts/
+        └── export_zephyr_csv.py
 ```
 
 The exporter uses only the Python standard library and requires no additional dependencies.
