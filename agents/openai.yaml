@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zephyr Test Case Creator"
+  short_description: "Guide one case from flow to Zephyr CSV"
+  default_prompt: "Use $zephyr-test-case-creator to turn my flow into one approved Zephyr test case and CSV."
