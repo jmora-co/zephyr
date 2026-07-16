@@ -39,6 +39,24 @@ STEP_HEADERS = ["#", "Step", "Test Data", "Expected Result"]
 SEPARATOR_RE = re.compile(r"^:?-{3,}:?$")
 ARTIFACT_STEM_RE = re.compile(r"^zephyr-[a-z0-9]+(?:-[a-z0-9]+)*$")
 SOURCES_PLACEHOLDER = "- User-provided information or inspected source paths."
+SOURCE_RE = re.compile(
+    r"^- (User|Jira|Repository|Documentation|Design|Attachment): (\S(?:.*\S)?)$"
+)
+NON_CONCRETE_SOURCE_DETAILS = {
+    "n/a",
+    "na",
+    "no source available",
+    "none",
+    "none identified",
+    "not provided",
+    "pending",
+    "placeholder",
+    "source",
+    "tbd",
+    "todo",
+    "unknown",
+}
+RISK_ORDER = {"High": 0, "Medium": 1, "Low": 2}
 
 
 def fail(message: str) -> None:
@@ -56,6 +74,8 @@ def validate_output_path(input_path: Path, output_path: Path) -> None:
         fail("output must use the .csv extension")
     if output_path.stem != input_path.stem:
         fail("Markdown and CSV outputs must use the same filename stem")
+    if output_path.resolve().parent != input_path.resolve().parent:
+        fail("Markdown and CSV outputs must use the same directory")
 
 
 def decode_cell(value: str) -> str:
@@ -128,10 +148,49 @@ def validate_sources(markdown: str) -> None:
         fail("Sources Used must contain at least one concrete source")
     if SOURCES_PLACEHOLDER in sources:
         fail("replace the Sources Used placeholder with concrete evidence")
+    matches = [SOURCE_RE.fullmatch(source) for source in sources]
+    if any(match is None for match in matches):
+        fail(
+            "format each concrete source as User, Jira, Repository, Documentation, "
+            "Design, or Attachment followed by specific evidence"
+        )
+    details = {
+        match.group(2).strip("`*_[]() .").casefold()
+        for match in matches
+        if match is not None
+    }
+    if details & NON_CONCRETE_SOURCE_DETAILS:
+        fail("replace placeholder evidence with a specific source description")
+
+
+def validate_suggestions(markdown: str) -> None:
+    suggestions = [
+        line
+        for line in section_lines(markdown, "## Suggested Separate Test Cases")
+        if line.startswith("- ")
+    ]
+    if suggestions == ["- None identified."]:
+        return
+    if not suggestions:
+        fail("Suggested Separate Test Cases must contain ranked suggestions or None identified")
+    if len(suggestions) > 3:
+        fail("Suggested Separate Test Cases supports at most three ranked suggestions")
+
+    risks: list[int] = []
+    for suggestion in suggestions:
+        match = re.fullmatch(r"- (High|Medium|Low): (.*)", suggestion)
+        if match is None:
+            fail("rank each suggested separate case as High, Medium, or Low")
+        if not match.group(2).strip():
+            fail("each suggested separate case must include a non-empty description")
+        risks.append(RISK_ORDER[match.group(1)])
+    if risks != sorted(risks):
+        fail("order suggested separate cases from High to Medium to Low risk")
 
 
 def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, str], list[dict[str, str]]]:
     validate_sources(markdown)
+    validate_suggestions(markdown)
     field_rows = parse_table(markdown, "## Test Case", ["Field", "Value"])
     case: dict[str, str] = {}
     for field, value in field_rows:

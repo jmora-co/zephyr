@@ -43,7 +43,7 @@ def valid_markdown(*, step: str = "Open C:\\temp\\report.json") -> str:
 
 ## Sources Used
 
-- `src/plans/create-plan.tsx`
+- Repository: `src/plans/create-plan.tsx`
 
 ## Suggested Separate Test Cases
 
@@ -121,6 +121,20 @@ class ExporterCliTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("same filename stem", result.stderr)
 
+    def test_rejects_an_output_outside_the_markdown_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source" / "zephyr-create-plan.md"
+            output = root / "output" / "zephyr-create-plan.csv"
+            source.parent.mkdir()
+            source.write_text(valid_markdown(), encoding="utf-8")
+
+            result = run_export(source, output)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("same directory", result.stderr)
+            self.assertFalse(output.exists())
+
     def test_fails_on_an_existing_csv_instead_of_breaking_the_artifact_pair(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -166,7 +180,7 @@ class ExporterCliTests(unittest.TestCase):
             root = Path(directory)
             source = root / "zephyr-create-plan.md"
             markdown = valid_markdown().replace(
-                "- `src/plans/create-plan.tsx`",
+                "- Repository: `src/plans/create-plan.tsx`",
                 "- User-provided information or inspected source paths.",
             )
             source.write_text(markdown, encoding="utf-8")
@@ -175,6 +189,128 @@ class ExporterCliTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("replace the Sources Used placeholder", result.stderr)
+
+    def test_rejects_a_non_concrete_source_value(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- Repository: `src/plans/create-plan.tsx`",
+                "- TODO",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("concrete source", result.stderr)
+
+    def test_requires_the_positive_source_notation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- Repository: `src/plans/create-plan.tsx`",
+                "- Unknown",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("User, Jira, Repository", result.stderr)
+
+    def test_rejects_placeholder_content_inside_source_notation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- Repository: `src/plans/create-plan.tsx`",
+                "- User: TODO",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("placeholder evidence", result.stderr)
+
+    def test_rejects_an_unranked_future_case_suggestion(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- None identified.",
+                "- Verify plan creation without permissions.",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("High, Medium, or Low", result.stderr)
+
+    def test_rejects_a_future_case_without_a_description(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace("- None identified.", "- High:   ")
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("non-empty description", result.stderr)
+
+    def test_accepts_up_to_three_future_cases_in_risk_order(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- None identified.",
+                "- High: Verify plan creation without permissions.\n"
+                "- Medium: Verify duplicate plan handling.\n"
+                "- Low: Verify optional description limits.",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_more_than_three_future_case_suggestions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- None identified.",
+                "- High: Verify missing permissions.\n"
+                "- High: Verify service failure.\n"
+                "- Medium: Verify duplicate plans.\n"
+                "- Low: Verify optional descriptions.",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("at most three", result.stderr)
+
+    def test_rejects_future_cases_out_of_risk_order(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "zephyr-create-plan.md"
+            markdown = valid_markdown().replace(
+                "- None identified.",
+                "- Low: Verify optional descriptions.\n"
+                "- High: Verify missing permissions.",
+            )
+            source.write_text(markdown, encoding="utf-8")
+
+            result = run_export(source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("High to Medium to Low", result.stderr)
 
     def test_exports_the_official_columns_and_continuation_rows(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

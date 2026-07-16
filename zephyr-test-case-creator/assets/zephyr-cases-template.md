@@ -2,7 +2,7 @@
 
 ## Sources Used
 
-<!-- Replace this instruction with one or more concrete user-provided or inspected sources. -->
+<!-- Add concrete bullets such as `- User: flow described in this conversation` or `- Repository: path/to/file`. -->
 
 ## Decisions Applied
 

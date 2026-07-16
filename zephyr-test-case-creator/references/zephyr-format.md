@@ -5,6 +5,7 @@ This file is the single prose contract for naming, Markdown, CSV export, and imp
 ## Artifact Pair
 
 - Use one kebab-case stem matching `zephyr-<flow>` for both files: `zephyr-<flow>.md` and `zephyr-<flow>.csv`.
+- Keep both files in the same working directory.
 - Describe an action and its main object in two to four meaningful words, for example `zephyr-create-plan`.
 - Append a relevant lowercase Jira key only when useful, for example `zephyr-create-plan-adm-3557`.
 - Prefer stems of 40 characters or fewer and omit words such as `test`, `case`, and implementation details.
@@ -16,13 +17,13 @@ This file is the single prose contract for naming, Markdown, CSV export, and imp
 Populate `assets/zephyr-cases-template.md` for exactly one case.
 
 - Keep contract headings, case fields, and step headers unchanged.
-- Replace the `Sources Used` instruction with at least one concrete user or inspected source.
+- Replace the `Sources Used` instruction with at least one concrete source using `- User: ...`, `- Jira: ...`, `- Repository: ...`, `- Documentation: ...`, `- Design: ...`, or `- Attachment: ...`.
 - Record proposed metadata and its evidence under `Decisions Applied`.
 - Escape literal table pipes as `\|`; ordinary backslashes remain literal.
 - Use `<br>` for a line break inside a cell.
 - Leave optional values blank instead of inserting placeholders.
 - Number steps sequentially from `1`.
-- Put alternate paths only under `Suggested Separate Test Cases`, ranked by risk, or write `None identified.`
+- Put alternate paths only under `Suggested Separate Test Cases`. Include at most three bullets in `High`, `Medium`, then `Low` order using `- High: ...`, or write `- None identified.`
 
 All 15 case fields must be present. `Name`, `Objective`, `Folder`, `Status`, and `Priority` require values. `Coverage (Issues)` requires a value unless the user explicitly waives it. Every step requires `Step` and `Expected Result`; `Test Data` is optional.
 
@@ -63,7 +64,7 @@ python3 <skill-directory>/scripts/export_zephyr_csv.py \
   --output zephyr-create-plan.csv
 ```
 
-Add `--allow-missing-coverage` only after an explicit waiver. Add `--overwrite` only after explicit replacement approval. A successful preflight validates the Markdown structure, concrete sources, complete field set, required values, sequential steps, paired naming, and output availability.
+Add `--allow-missing-coverage` only after an explicit waiver. Add `--overwrite` only after explicit replacement approval. A successful preflight validates the Markdown structure, concrete sources, bounded risk-ranked follow-up cases, complete field set, required values, sequential steps, paired naming and directory, and output availability.
 
 ## Import Handoff
 
