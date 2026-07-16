@@ -1,22 +1,34 @@
 # Zephyr Artifact Contract
 
-Read this reference before writing the case-specific Markdown or exporting CSV.
+This file is the single prose contract for naming, Markdown, CSV export, and import handoff.
 
-## Markdown Contract
+## Artifact Pair
 
-Create exactly one case using `assets/zephyr-cases-template.md`. Name it with the `zephyr-<flow>` template and use the same short stem for the Markdown and CSV filenames. The flow portion must identify the action and main object without requiring a Jira key. The exporter reads the `## Test Case` and `## Steps` tables directly, making the user-approved Markdown the single source of truth.
+- Use one kebab-case stem matching `zephyr-<flow>` for both files: `zephyr-<flow>.md` and `zephyr-<flow>.csv`.
+- Describe an action and its main object in two to four meaningful words, for example `zephyr-create-plan`.
+- Append a relevant lowercase Jira key only when useful, for example `zephyr-create-plan-adm-3557`.
+- Prefer stems of 40 characters or fewer and omit words such as `test`, `case`, and implementation details.
+- Check both paths before writing. If either exists and replacement is not approved, select the next numeric suffix that is unused for both, such as `-2`.
+- The exporter never chooses a suffix because that could separate the pair; it fails on an existing CSV unless `--overwrite` was explicitly approved.
 
-- Keep field names and step-table headers unchanged.
-- Escape literal pipes inside cells as `\|`.
-- Use `<br>` inside a cell when a line break is required.
-- Leave optional values blank rather than inserting placeholders.
-- Keep alternate paths under `Suggested Separate Test Cases`, not in the main steps.
+## Markdown
 
-Required case fields are `Name`, `Objective`, `Folder`, `Status`, and `Priority`. `Coverage (Issues)` is required unless the user explicitly waives it. At least one step is required, and every step needs `Step` and `Expected Result`.
+Populate `assets/zephyr-cases-template.md` for exactly one case.
 
-## CSV Contract
+- Keep contract headings, case fields, and step headers unchanged.
+- Replace the `Sources Used` instruction with at least one concrete user or inspected source.
+- Record proposed metadata and its evidence under `Decisions Applied`.
+- Escape literal table pipes as `\|`; ordinary backslashes remain literal.
+- Use `<br>` for a line break inside a cell.
+- Leave optional values blank instead of inserting placeholders.
+- Number steps sequentially from `1`.
+- Put alternate paths only under `Suggested Separate Test Cases`, ranked by risk, or write `None identified.`
 
-The provided `atm-exporter.xlsx` established this exact column order:
+All 15 case fields must be present. `Name`, `Objective`, `Folder`, `Status`, and `Priority` require values. `Coverage (Issues)` requires a value unless the user explicitly waives it. Every step requires `Step` and `Expected Result`; `Test Data` is optional.
+
+## CSV
+
+The local `atm-exporter.xlsx` contract established this exact order:
 
 1. `Key`
 2. `Name`
@@ -39,28 +51,30 @@ The provided `atm-exporter.xlsx` established this exact column order:
 19. `Test Script (Plain Text)`
 20. `Test Script (BDD)`
 
-For a new case, leave `Key` blank. Put metadata and step 1 in the first CSV row. For subsequent steps, leave metadata blank and populate only the three step-by-step columns. Keep Plain Text and BDD blank; Zephyr imports step-by-step scripts separately from those formats.
+Leave `Key` blank for a new case. Put metadata and step 1 in the first CSV row. Later rows contain only the three step-by-step values. Keep Plain Text and BDD blank.
 
 ## Export
 
-Resolve the script from the Skill directory, keep the user's current directory unchanged, and run:
+Resolve the script relative to `SKILL.md` and keep the user's working directory unchanged:
 
 ```bash
-python <skill-directory>/scripts/export_zephyr_csv.py \
+python3 <skill-directory>/scripts/export_zephyr_csv.py \
   --input zephyr-create-plan.md \
   --output zephyr-create-plan.csv
 ```
 
-The exporter validates Markdown structure, required fields, steps, and output naming. If the output exists, it adds a short numeric suffix instead of a timestamp. Use `--allow-missing-coverage` only after an explicit waiver and `--overwrite` only after explicit replacement approval.
+Add `--allow-missing-coverage` only after an explicit waiver. Add `--overwrite` only after explicit replacement approval. A successful preflight validates the Markdown structure, concrete sources, complete field set, required values, sequential steps, paired naming, and output availability.
 
-## Required Completion Handoff
+## Import Handoff
 
-After creating both artifacts, tell the user that the Markdown is for review and the CSV is the file to import from Zephyr's test-case import screen in Jira. State these settings explicitly:
+State that Markdown is the review source and CSV is the Zephyr import file. Tell the user to open Zephyr's test-case import screen in Jira and use:
 
 - File type: `Excel CSV` or equivalent CSV import.
 - Encoding: `UTF-8`.
-- Delimiter: comma (`,`), not slash (`/`) or semicolon (`;`).
-- Start at row `1` and enable field names/headers.
-- Map metadata columns by matching names.
-- Map `Test Script (Step-by-Step) - Step`, `Test Script (Step-by-Step) - Test Data`, and `Test Script (Step-by-Step) - Expected Result` to their matching step-by-step fields.
-- Do not choose Plain Text or BDD for the test script.
+- Delimiter: comma (`,`).
+- Start row: `1`, with field names/headers enabled.
+- Metadata mapping: matching column names.
+- Script mapping: the three `Test Script (Step-by-Step)` columns to Step, Test Data, and Expected Result.
+- Script format: Step-by-Step, not Plain Text or BDD.
+
+Ask the user to review the mapping preview before running the import.

@@ -10,7 +10,7 @@ It does not invent the workflow for the user. It explores the available context,
 
 ## Installation
 
-You need Node.js with `npx` available. There is no need to clone the repository or install a global package.
+You need Node.js with `npx` for installation and Python 3 for CSV export. There is no need to clone the repository or install a global package.
 
 ### Recommended: choose the agent and scope
 
@@ -51,19 +51,19 @@ The conversation follows the user's language. Test case content is written in En
 ```mermaid
 flowchart LR
     A[User context] --> B[Guided discovery]
-    B --> C[Confirmed workflow]
-    C --> D[zephyr-flow.md]
-    D --> E{Approved}
-    E -->|Edit| B
-    E -->|Export| F[zephyr-flow.csv]
+    B --> C[Evidence-backed draft]
+    C --> D{Approved}
+    D -->|Edit| B
+    D -->|Export| E[zephyr-flow.md]
+    E --> F[zephyr-flow.csv]
 ```
 
 1. Read the available manual workflow, code, PRD, Jira issue, screenshots, Figma designs, or documentation.
-2. Identify the actor, objective, entry point, preconditions, and final outcome.
-3. Propose concrete alternatives only when a decision is missing.
-4. Build one test case with precise actions and observable expected results.
-5. Generate a short, case-specific Markdown file for human review.
-6. After explicit approval, export a CSV with the same filename stem.
+2. Classify decisions as confirmed, source-backed, convention-backed, or unresolved.
+3. Identify the actor, objective, entry point, preconditions, and final outcome.
+4. Present one grouped preview with metadata, evidence, steps, and ranked follow-up cases.
+5. Ask one approval question: export, edit metadata, or edit steps/setup.
+6. After explicit approval, generate the Markdown source and its same-stem CSV.
 
 ## Two Paths, Less Friction
 
@@ -80,10 +80,10 @@ The Skill creates only these files in the directory where it is executed:
 
 | File | Purpose |
 | --- | --- |
-| `zephyr-create-plan.md` | Human-readable source for review and approval |
+| `zephyr-create-plan.md` | Approved human-readable source for review and maintenance |
 | `zephyr-create-plan.csv` | Final bulk-import file for Zephyr |
 
-The approved Markdown is the single source of truth for the CSV. Each case follows the short `zephyr-<flow>` template, shared by both files, so Zephyr artifacts and their covered flow remain recognizable in a mixed directory. Jira keys are optional and, when useful, are appended after the flow. No intermediate JSON files are created, and existing files are never overwritten without explicit approval; collisions receive a numeric suffix such as `-2`.
+The approved Markdown is the single source of truth for the CSV. Each case follows the short `zephyr-<flow>` template, shared by both files, so Zephyr artifacts and their covered flow remain recognizable in a mixed directory. Jira keys are optional and, when useful, are appended after the flow. No intermediate JSON files are created, and existing files are never overwritten without explicit approval. If either path is occupied, the Skill selects one numeric suffix such as `-2` for both files before writing; the exporter never renames only the CSV.
 
 ## Zephyr Format
 
@@ -93,7 +93,7 @@ The exporter generates the 20 columns used by the Zephyr contract, including:
 - Additional steps as continuation rows.
 - Separate `Step`, `Test Data`, and `Expected Result` columns.
 - UTF-8 encoding and comma delimiter.
-- Validation for metadata, coverage, and expected results.
+- Validation for concrete sources, the complete metadata contract, coverage, sequential steps, paired filenames, and expected results.
 
 After generating both files, the Skill provides a concise import handoff. Import the CSV from Zephyr's test-case import screen in Jira using Excel CSV, UTF-8, comma (`,`) as the delimiter, and row 1 as field names. Map the three step-by-step columns for Step, Test Data, and Expected Result; do not select Plain Text or BDD as the script format. Review the mapping preview before running the import. See the [official Zephyr import documentation](https://support.smartbear.com/zephyr/docs/en/test-cases/import-test-cases.html).
 
@@ -102,6 +102,8 @@ After generating both files, the Skill provides a concise import handoff. Import
 ```text
 .
 ├── README.md
+├── tests/
+│   └── test_export_zephyr_csv.py
 └── zephyr-test-case-creator/
     ├── SKILL.md
     ├── agents/
@@ -115,15 +117,20 @@ After generating both files, the Skill provides a concise import handoff. Import
         └── export_zephyr_csv.py
 ```
 
-The exporter uses only the Python standard library and requires no additional dependencies.
+The exporter uses only the Python 3 standard library and requires no additional dependencies. Its public contract is covered by the standard-library test suite:
+
+```bash
+python3 -m unittest tests/test_export_zephyr_csv.py
+```
 
 ## Principles
 
 - One test case per execution.
 - User-provided information takes precedence over inference.
+- Source-backed and convention-backed decisions are proposed with evidence before they become confirmed.
 - Questions include options, consequences, and a recommendation when supported by evidence.
 - Expected results are specific and observable.
-- Variants remain separate from the main workflow.
+- Variants remain separate from the main workflow and are ranked as future cases rather than generated automatically.
 - Human approval is required before export.
 
 ---

@@ -1,11 +1,17 @@
 # Zephyr Test Case
 
-## Defaults Applied
+## Sources Used
 
-| Field | Value |
-| --- | --- |
-| Status | Approved |
-| Priority | Normal |
+<!-- Replace this instruction with one or more concrete user-provided or inspected sources. -->
+
+## Decisions Applied
+
+| Decision | Value | Basis |
+| --- | --- | --- |
+| Entry state |  |  |
+| Status |  |  |
+| Priority |  |  |
+| Folder |  |  |
 
 ## Test Case
 
@@ -13,11 +19,11 @@
 | --- | --- |
 | Key |  |
 | Name |  |
-| Status | Approved |
+| Status |  |
 | Precondition |  |
 | Objective |  |
 | Folder |  |
-| Priority | Normal |
+| Priority |  |
 | Component |  |
 | Labels |  |
 | Owner |  |
@@ -33,10 +39,6 @@
 | --- | --- | --- | --- |
 | 1 |  |  |  |
 
-## Sources Used
-
-- User-provided information or inspected source paths.
-
 ## Suggested Separate Test Cases
 
-- Alternate flows discovered during mapping, if any.
+- None identified.

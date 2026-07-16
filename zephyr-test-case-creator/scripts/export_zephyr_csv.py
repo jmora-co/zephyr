@@ -37,11 +37,25 @@ CASE_FIELDS = CSV_COLUMNS[:15]
 REQUIRED_CASE_FIELDS = ["Name", "Objective", "Folder", "Status", "Priority", "Coverage (Issues)"]
 STEP_HEADERS = ["#", "Step", "Test Data", "Expected Result"]
 SEPARATOR_RE = re.compile(r"^:?-{3,}:?$")
+ARTIFACT_STEM_RE = re.compile(r"^zephyr-[a-z0-9]+(?:-[a-z0-9]+)*$")
+SOURCES_PLACEHOLDER = "- User-provided information or inspected source paths."
 
 
 def fail(message: str) -> None:
     print(f"error: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def validate_input_path(path: Path) -> None:
+    if path.suffix != ".md" or not ARTIFACT_STEM_RE.fullmatch(path.stem):
+        fail("input must use the zephyr-<flow>.md kebab-case naming contract")
+
+
+def validate_output_path(input_path: Path, output_path: Path) -> None:
+    if output_path.suffix != ".csv":
+        fail("output must use the .csv extension")
+    if output_path.stem != input_path.stem:
+        fail("Markdown and CSV outputs must use the same filename stem")
 
 
 def decode_cell(value: str) -> str:
@@ -55,20 +69,20 @@ def split_row(line: str) -> list[str]:
 
     cells: list[str] = []
     current: list[str] = []
-    escaped = False
-    for character in text[1:-1]:
-        if escaped:
-            current.append(character)
-            escaped = False
-        elif character == "\\":
-            escaped = True
-        elif character == "|":
+    content = text[1:-1]
+    index = 0
+    while index < len(content):
+        character = content[index]
+        if character == "\\" and index + 1 < len(content) and content[index + 1] == "|":
+            current.append("|")
+            index += 2
+            continue
+        if character == "|":
             cells.append(decode_cell("".join(current)))
             current = []
         else:
             current.append(character)
-    if escaped:
-        current.append("\\")
+        index += 1
     cells.append(decode_cell("".join(current)))
     return cells
 
@@ -108,7 +122,16 @@ def parse_table(markdown: str, heading: str, expected_headers: list[str]) -> lis
     return rows
 
 
+def validate_sources(markdown: str) -> None:
+    sources = [line for line in section_lines(markdown, "## Sources Used") if line.startswith("- ")]
+    if not sources:
+        fail("Sources Used must contain at least one concrete source")
+    if SOURCES_PLACEHOLDER in sources:
+        fail("replace the Sources Used placeholder with concrete evidence")
+
+
 def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, str], list[dict[str, str]]]:
+    validate_sources(markdown)
     field_rows = parse_table(markdown, "## Test Case", ["Field", "Value"])
     case: dict[str, str] = {}
     for field, value in field_rows:
@@ -120,6 +143,10 @@ def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, s
     if unknown:
         fail("unknown Test Case field(s): " + ", ".join(unknown))
 
+    missing_contract_fields = [field for field in CASE_FIELDS if field not in case]
+    if missing_contract_fields:
+        fail("missing Test Case field(s): " + ", ".join(missing_contract_fields))
+
     missing = [
         field
         for field in REQUIRED_CASE_FIELDS
@@ -130,7 +157,9 @@ def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, s
 
     step_rows = parse_table(markdown, "## Steps", STEP_HEADERS)
     steps: list[dict[str, str]] = []
-    for index, (_, action, test_data, expected) in enumerate(step_rows, start=1):
+    for index, (number, action, test_data, expected) in enumerate(step_rows, start=1):
+        if number != str(index):
+            fail(f"step number must be {index}; found {number or 'blank'}")
         if not action:
             fail(f"step {index} is missing Step")
         if not expected:
@@ -139,15 +168,12 @@ def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, s
     return case, steps
 
 
-def unique_output_path(path: Path, overwrite: bool) -> Path:
-    if overwrite or not path.exists():
-        return path
-    counter = 2
-    candidate = path.with_name(f"{path.stem}-{counter}{path.suffix}")
-    while candidate.exists():
-        counter += 1
-        candidate = path.with_name(f"{path.stem}-{counter}{path.suffix}")
-    return candidate
+def ensure_output_is_available(path: Path, overwrite: bool) -> None:
+    if path.exists() and not overwrite:
+        fail(
+            f"output already exists: {path}; choose one unused stem for both artifacts "
+            "or use --overwrite after explicit approval"
+        )
 
 
 def build_rows(case: dict[str, str], steps: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -190,12 +216,14 @@ def main() -> None:
     input_path = Path(args.input)
     if not input_path.is_file():
         fail(f"Markdown input does not exist: {input_path}")
+    validate_input_path(input_path)
     markdown = input_path.read_text(encoding="utf-8")
     case, steps = parse_case(markdown, args.allow_missing_coverage)
     requested_output = Path(args.output) if args.output else input_path.with_suffix(".csv")
-    output_path = unique_output_path(requested_output, args.overwrite)
-    write_csv(output_path, build_rows(case, steps))
-    print(output_path)
+    validate_output_path(input_path, requested_output)
+    ensure_output_is_available(requested_output, args.overwrite)
+    write_csv(requested_output, build_rows(case, steps))
+    print(requested_output)
 
 
 if __name__ == "__main__":
