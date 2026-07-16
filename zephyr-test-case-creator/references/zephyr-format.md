@@ -1,10 +1,10 @@
 # Zephyr Artifact Contract
 
-Read this reference before writing `zephyr-cases.md` or exporting CSV.
+Read this reference before writing the case-specific Markdown or exporting CSV.
 
 ## Markdown Contract
 
-Create exactly one case using `assets/zephyr-cases-template.md`. The exporter reads the `## Test Case` and `## Steps` tables directly, making the user-approved Markdown the single source of truth.
+Create exactly one case using `assets/zephyr-cases-template.md`. Name it with the `zephyr-<flow>` template and use the same short stem for the Markdown and CSV filenames. The flow portion must identify the action and main object without requiring a Jira key. The exporter reads the `## Test Case` and `## Steps` tables directly, making the user-approved Markdown the single source of truth.
 
 - Keep field names and step-table headers unchanged.
 - Escape literal pipes inside cells as `\|`.
@@ -47,10 +47,20 @@ Resolve the script from the Skill directory, keep the user's current directory u
 
 ```bash
 python <skill-directory>/scripts/export_zephyr_csv.py \
-  --input zephyr-cases.md \
-  --output zephyr-bulk.csv
+  --input zephyr-create-plan.md \
+  --output zephyr-create-plan.csv
 ```
 
-The exporter validates Markdown structure, required fields, steps, and output naming. Use `--allow-missing-coverage` only after an explicit waiver and `--overwrite` only after explicit replacement approval.
+The exporter validates Markdown structure, required fields, steps, and output naming. If the output exists, it adds a short numeric suffix instead of a timestamp. Use `--allow-missing-coverage` only after an explicit waiver and `--overwrite` only after explicit replacement approval.
 
-Import the result as Excel CSV with UTF-8 encoding, comma delimiter, row 1 as the start, field names enabled, and the three step-by-step columns mapped.
+## Required Completion Handoff
+
+After creating both artifacts, tell the user that the Markdown is for review and the CSV is the file to import from Zephyr's test-case import screen in Jira. State these settings explicitly:
+
+- File type: `Excel CSV` or equivalent CSV import.
+- Encoding: `UTF-8`.
+- Delimiter: comma (`,`), not slash (`/`) or semicolon (`;`).
+- Start at row `1` and enable field names/headers.
+- Map metadata columns by matching names.
+- Map `Test Script (Step-by-Step) - Step`, `Test Script (Step-by-Step) - Test Data`, and `Test Script (Step-by-Step) - Expected Result` to their matching step-by-step fields.
+- Do not choose Plain Text or BDD for the test script.

@@ -52,18 +52,18 @@ The conversation follows the user's language. Test case content is written in En
 flowchart LR
     A[User context] --> B[Guided discovery]
     B --> C[Confirmed workflow]
-    C --> D[zephyr-cases.md]
+    C --> D[zephyr-flow.md]
     D --> E{Approved}
     E -->|Edit| B
-    E -->|Export| F[zephyr-bulk.csv]
+    E -->|Export| F[zephyr-flow.csv]
 ```
 
 1. Read the available manual workflow, code, PRD, Jira issue, screenshots, Figma designs, or documentation.
 2. Identify the actor, objective, entry point, preconditions, and final outcome.
 3. Propose concrete alternatives only when a decision is missing.
 4. Build one test case with precise actions and observable expected results.
-5. Generate `zephyr-cases.md` for human review.
-6. After explicit approval, export the Zephyr-compatible `zephyr-bulk.csv`.
+5. Generate a short, case-specific Markdown file for human review.
+6. After explicit approval, export a CSV with the same filename stem.
 
 ## Two Paths, Less Friction
 
@@ -80,10 +80,10 @@ The Skill creates only these files in the directory where it is executed:
 
 | File | Purpose |
 | --- | --- |
-| `zephyr-cases.md` | Human-readable source for review and approval |
-| `zephyr-bulk.csv` | Final bulk-import file for Zephyr |
+| `zephyr-create-plan.md` | Human-readable source for review and approval |
+| `zephyr-create-plan.csv` | Final bulk-import file for Zephyr |
 
-The approved Markdown is the single source of truth for the CSV. No intermediate JSON files are created, and existing files are never overwritten without explicit approval.
+The approved Markdown is the single source of truth for the CSV. Each case follows the short `zephyr-<flow>` template, shared by both files, so Zephyr artifacts and their covered flow remain recognizable in a mixed directory. Jira keys are optional and, when useful, are appended after the flow. No intermediate JSON files are created, and existing files are never overwritten without explicit approval; collisions receive a numeric suffix such as `-2`.
 
 ## Zephyr Format
 
@@ -95,7 +95,7 @@ The exporter generates the 20 columns used by the Zephyr contract, including:
 - UTF-8 encoding and comma delimiter.
 - Validation for metadata, coverage, and expected results.
 
-To import the CSV, select Excel CSV, UTF-8, comma delimiter, row 1 as the starting row, and map the step-by-step columns. See the [official Zephyr import documentation](https://support.smartbear.com/zephyr/docs/en/test-cases/import-test-cases.html).
+After generating both files, the Skill provides a concise import handoff. Import the CSV from Zephyr's test-case import screen in Jira using Excel CSV, UTF-8, comma (`,`) as the delimiter, and row 1 as field names. Map the three step-by-step columns for Step, Test Data, and Expected Result; do not select Plain Text or BDD as the script format. Review the mapping preview before running the import. See the [official Zephyr import documentation](https://support.smartbear.com/zephyr/docs/en/test-cases/import-test-cases.html).
 
 ## Structure
 

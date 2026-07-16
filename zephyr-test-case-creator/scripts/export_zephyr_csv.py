@@ -7,7 +7,6 @@ import argparse
 import csv
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 
 
@@ -143,12 +142,11 @@ def parse_case(markdown: str, allow_missing_coverage: bool) -> tuple[dict[str, s
 def unique_output_path(path: Path, overwrite: bool) -> Path:
     if overwrite or not path.exists():
         return path
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
-    candidate = path.with_name(f"{path.stem}-{stamp}{path.suffix}")
     counter = 2
+    candidate = path.with_name(f"{path.stem}-{counter}{path.suffix}")
     while candidate.exists():
-        candidate = path.with_name(f"{path.stem}-{stamp}-{counter}{path.suffix}")
         counter += 1
+        candidate = path.with_name(f"{path.stem}-{counter}{path.suffix}")
     return candidate
 
 
@@ -176,8 +174,11 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", default="zephyr-cases.md", help="approved Markdown input path")
-    parser.add_argument("--output", default="zephyr-bulk.csv", help="CSV output path")
+    parser.add_argument("--input", required=True, help="approved case-specific Markdown path")
+    parser.add_argument(
+        "--output",
+        help="CSV output path; defaults to the input path with a .csv extension",
+    )
     parser.add_argument("--overwrite", action="store_true", help="replace an existing output file")
     parser.add_argument(
         "--allow-missing-coverage",
@@ -191,7 +192,8 @@ def main() -> None:
         fail(f"Markdown input does not exist: {input_path}")
     markdown = input_path.read_text(encoding="utf-8")
     case, steps = parse_case(markdown, args.allow_missing_coverage)
-    output_path = unique_output_path(Path(args.output), args.overwrite)
+    requested_output = Path(args.output) if args.output else input_path.with_suffix(".csv")
+    output_path = unique_output_path(requested_output, args.overwrite)
     write_csv(output_path, build_rows(case, steps))
     print(output_path)
 
